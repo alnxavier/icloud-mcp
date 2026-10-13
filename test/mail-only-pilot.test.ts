@@ -12,8 +12,7 @@ import { autonomyConfigured, signInNotices, isAllowedRedirectOrigin } from "../s
 import { MAIL_ONLY_NOTICE, renderForm } from "../src/auth/login-page";
 import { ownerPrincipal } from "./fixtures/bound-secrets";
 
-const originalMode = env.MAIL_ONLY_MODE;
-afterEach(() => { env.MAIL_ONLY_MODE = originalMode; vi.restoreAllMocks(); });
+afterEach(() => { vi.restoreAllMocks(); });
 const MAIL_TOOLS = ["mail_get_message", "mail_list_folders", "mail_list_messages", "mail_find", "mail_list_unread", "mail_compose_new", "mail_compose_reply"];
 
 function registered() {
@@ -25,9 +24,8 @@ function registered() {
 
 describe("mail-only deployment", () => {
   it("exposes exactly nine tools through the actual MCP protocol", async () => {
-    env.MAIL_ONLY_MODE = "true";
     const extra = vi.fn();
-    const server = await createServerFactory(ownerPrincipal(), [extra])({ era: "modern" });
+    const server = await createServerFactory(ownerPrincipal(), [extra], async () => null, true)({ era: "modern" });
     const [client, transport] = InMemoryTransport.createLinkedPair();
     const messages: Record<string, unknown>[] = [];
     client.onmessage = message => { messages.push(message as unknown as Record<string, unknown>); };
@@ -72,10 +70,10 @@ describe("mail-only deployment", () => {
   });
 
   it("disables autonomy even when upstream autonomy secrets are configured", async () => {
-    env.MAIL_ONLY_MODE = "true";
-    expect(autonomyConfigured(env)).toBe(false);
-    expect(signInNotices(env)).toEqual([MAIL_ONLY_NOTICE]);
-    const page = await renderForm("", null, { name: "ChatGPT", redirectUri: "https://chatgpt.com/connector_platform_oauth_redirect" }, signInNotices(env)).text();
+    const mailEnv = { ...env, MAIL_ONLY_MODE: "true" };
+    expect(autonomyConfigured(mailEnv)).toBe(false);
+    expect(signInNotices(mailEnv)).toEqual([MAIL_ONLY_NOTICE]);
+    const page = await renderForm("", null, { name: "ChatGPT", redirectUri: "https://chatgpt.com/connector_platform_oauth_redirect" }, signInNotices(mailEnv)).text();
     expect(page).not.toContain("can read your iCloud mail, calendar and contacts");
     expect(page).not.toContain('name="autonomy_notice"');
     expect(page).toContain("save drafts");
