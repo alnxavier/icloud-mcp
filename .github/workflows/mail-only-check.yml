@@ -29,3 +29,8 @@ jobs:
       - run: npm run typecheck
       - run: npm run scan
       - run: npm test -- test/mail-only-pilot.test.ts test/mail-tools.test.ts test/authorize-redirect-allowlist.test.ts test/authorize-login.test.ts test/login-page.test.ts test/auth-ordering.test.ts test/compose.test.ts test/append.test.ts test/read-path-wire.test.ts test/cross-user.test.ts test/password-pause.test.ts test/instructions.test.ts
+      - name: Verify the mail-only deployment bundle without publishing
+        run: |
+          cp wrangler.mail-only.jsonc wrangler.jsonc
+          npm run gen:hostname
+          npx wrangler deploy --dry-run --outdir /tmp/icloud-mcp-build

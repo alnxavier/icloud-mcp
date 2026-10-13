@@ -1,0 +1,73 @@
+// Ongoing mail-only deployment; no trial expiry.
+// Configure ALLOWED_APPLE_IDS_SEED as a runtime secret, never in this public repository.
+// Without a valid owner allow list, sign-in fails closed.
+// Free Workers CPU and resource quotas still apply. No AI, Vectorize, R2 or background jobs.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "icloud-mcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-01",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [
+    {
+      "pattern": "icloud-mcp.alinexavier.com",
+      "custom_domain": true
+    }
+  ],
+  "vars": {
+    "MAIL_ONLY_MODE": "true"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "OAUTH_KV",
+      "id": "YOUR_OAUTH_KV_NAMESPACE_ID"
+    },
+    {
+      "binding": "ALLOW_LIST_KV",
+      "id": "YOUR_ALLOW_LIST_NAMESPACE_ID"
+    }
+  ],
+  "ratelimits": [
+    {
+      "name": "LOGIN_IP_LIMITER",
+      "namespace_id": "2001",
+      "simple": {
+        "limit": 5,
+        "period": 60
+      }
+    },
+    {
+      "name": "LOGIN_ID_LIMITER",
+      "namespace_id": "2002",
+      "simple": {
+        "limit": 3,
+        "period": 60
+      }
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "USER_AGENT",
+        "class_name": "UserAgent"
+      }
+    ]
+  },
+  "exports": {
+    "UserAgent": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    }
+  },
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true
+    }
+  }
+}
