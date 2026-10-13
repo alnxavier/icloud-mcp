@@ -1,0 +1,31 @@
+name: Mail-only validation
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mail-only-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      HUSKY: "0"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run scan
+      - run: npm test -- test/mail-only-pilot.test.ts test/mail-tools.test.ts test/authorize-redirect-allowlist.test.ts test/authorize-login.test.ts test/login-page.test.ts test/auth-ordering.test.ts test/compose.test.ts test/append.test.ts test/read-path-wire.test.ts test/cross-user.test.ts test/password-pause.test.ts test/instructions.test.ts

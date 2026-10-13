@@ -141,6 +141,7 @@ import {
   AUTONOMY_NOTICE_FIELD,
   AUTONOMY_NOTICE_VERSION,
   RECALL_NOTICE,
+  MAIL_ONLY_NOTICE,
   RESPONSE_HEADERS,
   SOURCE_REFUSAL_BODY,
   renderForm,
@@ -521,7 +522,7 @@ const LOGIN_FAILURE_KEY_PREFIX = "authorize-failures:v3:";
  * token keeps working. The fix is to read the refused origin out of the
  * refusal body this server just served, add it here, and deploy.
  */
-const ALLOWED_REDIRECT_ORIGINS: readonly string[] = ["https://claude.ai"];
+const ALLOWED_REDIRECT_ORIGINS: readonly string[] = ["https://claude.ai", "https://chatgpt.com"];
 
 /**
  * The one origin CLASS admitted alongside the exact entries above: loopback.
@@ -1400,7 +1401,7 @@ export function createLoginHandler(
  * sign-in works exactly as it always did, and nothing is minted.
  */
 export function autonomyConfigured(env: Env): boolean {
-  return isConfiguredSecret(env.AUTONOMY_CLIENT_SECRET) && sealKeyUsable(env.AUTONOMY_SEAL_KEY);
+  return env.MAIL_ONLY_MODE !== "true" && isConfiguredSecret(env.AUTONOMY_CLIENT_SECRET) && sealKeyUsable(env.AUTONOMY_SEAL_KEY);
 }
 
 /**
@@ -1463,6 +1464,7 @@ export const loginHandler = createLoginHandler();
  * inherent: it does not depend on any setting.
  */
 export function signInNotices(env: Env): readonly SignInNotice[] {
+  if (env.MAIL_ONLY_MODE === "true") return [MAIL_ONLY_NOTICE];
   return autonomyConfigured(env) ? [RECALL_NOTICE, AUTONOMY_NOTICE] : [RECALL_NOTICE];
 }
 

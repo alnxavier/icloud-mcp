@@ -2564,6 +2564,7 @@ export function registerMailTools(
   server: McpServer,
   mail: LeasedMail,
   principal: Promise<Principal>,
+  mailOnly = false,
 ): void {
   server.registerTool(
     "mail_get_message",
@@ -2607,7 +2608,7 @@ export function registerMailTools(
         // live message for good, since nothing re-indexes it. Only when the id
         // decoded. It never throws, and the answer below is exactly the one
         // this catch gave before recall existed.
-        if (err instanceof ImapGoneError && actor !== null && ref !== null) {
+        if (!mailOnly && err instanceof ImapGoneError && actor !== null && ref !== null) {
           await forgetDeadRef(actor, ref);
         }
         // The same backstop shape `registerDiagnoseTool` uses: one boundary,
@@ -2655,7 +2656,7 @@ export function registerMailTools(
           .number()
           .int()
           .optional()
-          .describe("Rows per page. Default 25, maximum 100, clamped."),
+          .describe(mailOnly ? "Rows per page. Default 5, maximum 5, clamped." : "Rows per page. Default 25, maximum 100, clamped."),
         cursor: z
           .string()
           .optional()
@@ -2670,7 +2671,7 @@ export function registerMailTools(
         const folder = decodeFolderId(folderId);
         return messagePageToolResult(
           await mail.withConnectionLease(actor, (leased) =>
-            listMessages(actor, leased, folder.mailbox, { pageSize, cursor }),
+            listMessages(actor, leased, folder.mailbox, { pageSize: mailOnly ? Math.min(5, Math.max(1, pageSize ?? 5)) : pageSize, cursor }),
           ),
         );
       } catch (err) {
@@ -2732,7 +2733,7 @@ export function registerMailTools(
           .number()
           .int()
           .optional()
-          .describe("Rows per page. Default 25, maximum 100, clamped."),
+          .describe(mailOnly ? "Rows per page. Default 5, maximum 5, clamped." : "Rows per page. Default 25, maximum 100, clamped."),
         cursor: z
           .string()
           .optional()
@@ -2752,7 +2753,7 @@ export function registerMailTools(
               leased,
               mailbox,
               { keyword, sender, startDate, endDate },
-              { pageSize, cursor },
+              { pageSize: mailOnly ? Math.min(5, Math.max(1, pageSize ?? 5)) : pageSize, cursor },
             ),
           ),
         );
@@ -2779,7 +2780,7 @@ export function registerMailTools(
           .number()
           .int()
           .optional()
-          .describe("Rows per page. Default 25, maximum 100, clamped."),
+          .describe(mailOnly ? "Rows per page. Default 5, maximum 5, clamped." : "Rows per page. Default 25, maximum 100, clamped."),
         cursor: z
           .string()
           .optional()
@@ -2793,7 +2794,7 @@ export function registerMailTools(
         const mailbox = resolveMailbox(folderId);
         return messagePageToolResult(
           await mail.withConnectionLease(actor, (leased) =>
-            listUnread(actor, leased, mailbox, { pageSize, cursor }),
+            listUnread(actor, leased, mailbox, { pageSize: mailOnly ? Math.min(5, Math.max(1, pageSize ?? 5)) : pageSize, cursor }),
           ),
         );
       } catch (err) {
@@ -2846,7 +2847,9 @@ export function registerMailTools(
             "The HTML body, authored by you. Supply at least one of text or " +
               "html; supplying both produces a message carrying each.",
           ),
-        attachmentIds: attachmentIdList,
+        attachmentIds: mailOnly
+          ? z.array(z.string()).max(0).optional().describe("Attachments are disabled in mail-only mode; omit.")
+          : attachmentIdList,
         folderId: z
           .string()
           .optional()
@@ -2861,6 +2864,10 @@ export function registerMailTools(
         // would have to notice for themselves.
         .refine((value) => value.text !== undefined || value.html !== undefined, {
           message: "supply at least one of text or html",
+        })
+        .refine((value) => !mailOnly || (value.folderId === undefined &&
+          (value.text?.length ?? 0) <= 16000 && (value.html?.length ?? 0) <= 16000), {
+          message: "Mail-only mode: omit folderId to use Drafts, and keep each body under 16000 characters",
         }),
     },
     async ({ to, cc, subject, text, html, attachmentIds, folderId }) => {
@@ -3070,7 +3077,9 @@ export function registerMailTools(
                 "address. Off by default. Prefer it to naming the whole " +
                 "list yourself: a mistake here reaches strangers.",
             ),
-          attachmentIds: attachmentIdList,
+          attachmentIds: mailOnly
+          ? z.array(z.string()).max(0).optional().describe("Attachments are disabled in mail-only mode; omit.")
+          : attachmentIdList,
           folderId: z
             .string()
             .optional()
@@ -3080,6 +3089,10 @@ export function registerMailTools(
         })
         .refine((value) => value.text !== undefined || value.html !== undefined, {
           message: "supply at least one of text or html",
+        })
+        .refine((value) => !mailOnly || (value.folderId === undefined &&
+          (value.text?.length ?? 0) <= 16000 && (value.html?.length ?? 0) <= 16000), {
+          message: "Mail-only mode: omit folderId to use Drafts, and keep each body under 16000 characters",
         }),
     },
     async ({
@@ -3249,6 +3262,10 @@ export function registerMailTools(
       }
     },
   );
+
+  // Mail-only mode exposes only reads, searches and the two draft creators above.
+  // Returning before registration also makes every other mail tool uncallable.
+  if (mailOnly) return;
 
   server.registerTool(
     "mail_get_attachment",

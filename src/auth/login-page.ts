@@ -452,6 +452,16 @@ const DAY_MS = 86_400_000;
  * OWNER APPROVAL: the owner approves the words, and edits this one constant if
  * he wants them changed.
  */
+export const MAIL_ONLY_NOTICE: SignInNotice = {
+  heading: "Mail-only connection",
+  lines: [
+    "Read and search iCloud Mail and create drafts for you to review and send yourself. This server cannot send mail.",
+    "Calendar, contacts, attachments, moving or deleting mail, flags, semantic indexing and background jobs are disabled.",
+    "Your app-specific password is stored encrypted in this server on Cloudflare and used to connect to Apple. Authorized mail results are returned to your connected MCP client.",
+    "Free Workers requests can fail on larger requests. A timeout while creating a draft does not prove that no draft was saved.",
+  ],
+};
+
 export const RECALL_NOTICE: SignInNotice = {
   heading: "A searchable copy of your recent mail",
   lines: [
@@ -859,6 +869,10 @@ export function renderForm(
   identity: ClientIdentity,
   notices: readonly SignInNotice[],
 ): Response {
+  const mailOnly = notices.includes(MAIL_ONLY_NOTICE);
+  const sections = mailOnly ? EXPLAINER_SECTIONS.map((section) =>
+    section.heading === "What this server can do afterwards"
+      ? { ...section, paragraphs: MAIL_ONLY_NOTICE.lines } : section) : EXPLAINER_SECTIONS;
   const lines = failureLines(failure);
   const failed = lines.length > 0;
 
@@ -898,7 +912,7 @@ export function renderForm(
 <body>
 <main>
   <h1>Sign in with your Apple ID</h1>
-  <p class="lead">This connection can read your iCloud mail, calendar and contacts.</p>
+  <p class="lead">${mailOnly ? "This connection can read your iCloud mail and save drafts." : "This connection can read your iCloud mail, calendar and contacts."}</p>
   <div class="consent">
     <p><strong class="client">${clientName}</strong> is asking to connect.</p>
     <p>Signing in sends you to <code class="dest">${destination}</code>.</p>
@@ -918,7 +932,7 @@ export function renderForm(
     <button type="submit" aria-describedby="submit-help">Sign in</button>
     <p class="help" id="submit-help">This takes a few seconds while Apple checks the password. Press it once.</p>
   </form>
-  <div class="explainer">${EXPLAINER_SECTIONS.map(renderSection).join("")}</div>
+  <div class="explainer">${sections.map(renderSection).join("")}</div>
 </main>
 </body>
 </html>`,

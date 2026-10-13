@@ -14,6 +14,8 @@ import type { UserAgent } from "./agent/user-agent";
 declare global {
   namespace Cloudflare {
     interface Env {
+      /** Mail-only profile; no recall, attachments or autonomy. */
+      MAIL_ONLY_MODE?: string;
       /**
        * Token, grant, and client storage for the OAuth provider.
        *
