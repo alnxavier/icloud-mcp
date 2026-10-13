@@ -30,7 +30,7 @@ export const oauthProviderOptions: OAuthProviderOptions<Env> = {
   // the only place in src/ that hands a request to the download route.
   defaultHandler: {
     fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-      if (new URL(request.url).pathname.startsWith(SAVE_ROUTE_PATH)) {
+      if (env.MAIL_ONLY_MODE !== "true" && new URL(request.url).pathname.startsWith(SAVE_ROUTE_PATH)) {
         return handleSaveDownload(request, env, ctx);
       }
       return loginHandler.fetch(request, env, ctx);

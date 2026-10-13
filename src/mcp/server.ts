@@ -101,9 +101,10 @@ export function createServerFactory(
     // wants the raw gate is a decision, not a refactor
     // (`test/lease-coverage.test.ts` fails on it).
     const leasedMail = createLeasedMail(gate);
+    const unpaused = answersDuringPause(principal);
+    registerDiagnoseTool(server, leasedMail, unpaused);
+    registerAccountTool(server, principal);
     if (mailOnly) {
-      registerDiagnoseTool(server, leasedMail, answersDuringPause(principal));
-      registerAccountTool(server, principal);
       registerMailTools(server, leasedMail, principal, true);
       return server;
     }
@@ -133,7 +134,6 @@ export function createServerFactory(
     // It is deliberately NOT a second promise threaded through
     // `buildRequestHandler`: it is derived here, one line above the two
     // registrations it serves, where a reader can see which tools have it.
-    const unpaused = answersDuringPause(principal);
     // The DAV fetch takes the PROMISE and awaits it inside each request it
     // sends, so this body stays synchronous. It was this file's only use of the
     // ambient environment, which is why that import is gone.
@@ -156,7 +156,6 @@ export function createServerFactory(
     //
     // The IMAP diagnostic takes the lease too (D-07): it opens a real iCloud
     // mail connection, which counts against the same per-account ceiling.
-    registerDiagnoseTool(server, leasedMail, unpaused);
     // The "which Apple ID is this connection signed in as" answer (LIFE-06).
     // It returns the WHOLE address, not a mask. D4 chose the mask on
     // 2026-09-21 and the owner REVERSED it on 2026-09-23, because the masked
@@ -169,7 +168,6 @@ export function createServerFactory(
     // It takes the principal and nothing else: no gate, no DAV fetch, no
     // environment. It cannot reach a socket or a DAV host, which is exactly why
     // it needs neither.
-    registerAccountTool(server, principal);
     // The three mail registrars, each handed the DRIVEN server. The parameter
     // is named `server` on purpose, so each registration below reads exactly as
     // it did before the build was driven, and the one line after this block is
