@@ -5,6 +5,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "icloud-mcp",
+  "account_id": "03222057f0770b8c441f707ccb1b0aea",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-01",
   "compatibility_flags": [
@@ -24,11 +25,11 @@
   "kv_namespaces": [
     {
       "binding": "OAUTH_KV",
-      "id": "YOUR_OAUTH_KV_NAMESPACE_ID"
+      "id": "d511e914563040c2834f78f45deea1c2"
     },
     {
       "binding": "ALLOW_LIST_KV",
-      "id": "YOUR_ALLOW_LIST_NAMESPACE_ID"
+      "id": "fda41da12f3d46bfaac21f4ede45b739"
     }
   ],
   "ratelimits": [
