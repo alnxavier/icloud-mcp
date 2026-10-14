@@ -71,6 +71,8 @@ import { ownerPrincipal } from "./fixtures/bound-secrets";
 // The harness
 // ---------------------------------------------------------------------------
 
+describe.each([false, true])("mail moves (mailOnly=%s)", (mailOnly) => {
+
 type ToolAnswer = { content: { type: "text"; text: string }[]; isError?: boolean };
 type Callback = (args: Record<string, unknown>) => Promise<ToolAnswer>;
 
@@ -82,7 +84,7 @@ function tools(): { move: Callback; commit: Callback } {
       callbacks.set(name, handler);
     },
   };
-  registerMailTools(server as unknown as McpServer, createLeasedMail(createSessionGate()), ownerPrincipal());
+  registerMailTools(server as unknown as McpServer, createLeasedMail(createSessionGate()), ownerPrincipal(), mailOnly);
   expect(callbacks.get("mail_move"), "mail_move is not registered").toBeDefined();
   expect(callbacks.get("mail_commit"), "mail_commit is not registered").toBeDefined();
   return { move: callbacks.get("mail_move")!, commit: callbacks.get("mail_commit")! };
@@ -1544,7 +1546,7 @@ function allTools(): Map<string, Callback> {
       callbacks.set(name, handler);
     },
   };
-  registerMailTools(server as unknown as McpServer, createLeasedMail(createSessionGate()), ownerPrincipal());
+  registerMailTools(server as unknown as McpServer, createLeasedMail(createSessionGate()), ownerPrincipal(), mailOnly);
   for (const name of ["mail_archive", "mail_trash", "mail_commit"]) {
     expect(callbacks.get(name), `${name} is not registered`).toBeDefined();
   }
@@ -1974,4 +1976,6 @@ describe("archive and Trash refuse rather than guess, and Trash never says delet
     expect(words.length).toBeGreaterThanOrEqual(4);
     for (const line of words) expect(line).not.toMatch(/delet/i);
   });
+});
+
 });

@@ -3263,9 +3263,8 @@ export function registerMailTools(
     },
   );
 
-  // Mail-only mode exposes only reads, searches and the two draft creators above.
-  // Returning before registration also makes every other mail tool uncallable.
-  if (mailOnly) return;
+  // Attachments remain unavailable in the deployed mail-only connection.
+  if (!mailOnly) {
 
   server.registerTool(
     "mail_get_attachment",
@@ -3715,6 +3714,8 @@ export function registerMailTools(
     },
   );
 
+  }
+
   /**
    * Mark one message read or unread (MUTA-07).
    *
@@ -3784,6 +3785,7 @@ export function registerMailTools(
    * code, so a caller chooses only on or off and can reach no other flag
    * (D-05). The verb checks that the folder keeps the flag before it writes.
    */
+  if (!mailOnly) {
   server.registerTool(
     "mail_flag",
     {
@@ -3813,6 +3815,8 @@ export function registerMailTools(
       }
     },
   );
+
+  }
 
   /**
    * Preview moving messages to another folder (TRIA-02, D-05).
@@ -3968,6 +3972,7 @@ export function registerMailTools(
    * nothing; `mail_commit` applies it. The id is decoded before the lease and
    * before any socket, so a bad id costs no connection.
    */
+  if (!mailOnly) {
   server.registerTool(
     "mail_delete_draft",
     {
@@ -3992,6 +3997,8 @@ export function registerMailTools(
       }
     },
   );
+
+  }
 
   /**
    * Apply a previewed mail change (D-05).
@@ -4027,6 +4034,9 @@ export function registerMailTools(
               subject: z.string().nullable(),
             }),
           ])
+          .refine((change) => !mailOnly || change.op === "move", {
+            message: "Mail-only mode accepts only a previewed move, archive or Trash change",
+          })
           .describe("The change object from the preview, unaltered."),
       }),
     },

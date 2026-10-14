@@ -456,7 +456,7 @@ export const MAIL_ONLY_NOTICE: SignInNotice = {
   heading: "Mail-only connection",
   lines: [
     "Read and search iCloud Mail and create drafts for you to review and send yourself. This server cannot send mail.",
-    "Calendar, contacts, attachments, moving or deleting mail, flags, semantic indexing and background jobs are disabled.",
+    "You can also mark mail read or unread, move it, archive it, or move it to Trash. Moves require a preview and confirmation. Sending, permanent deletion, calendar, contacts, attachments, starring, semantic indexing and background jobs are disabled.",
     "Your app-specific password is stored encrypted in this server on Cloudflare and used to connect to Apple. Authorized mail results are returned to your connected MCP client.",
     "Free Workers requests can fail on larger requests. A timeout while creating a draft does not prove that no draft was saved.",
   ],
@@ -912,7 +912,7 @@ export function renderForm(
 <body>
 <main>
   <h1>Sign in with your Apple ID</h1>
-  <p class="lead">${mailOnly ? "This connection can read your iCloud mail and save drafts." : "This connection can read your iCloud mail, calendar and contacts."}</p>
+  <p class="lead">${mailOnly ? "This connection can read and organize your iCloud mail and save drafts." : "This connection can read your iCloud mail, calendar and contacts."}</p>
   <div class="consent">
     <p><strong class="client">${clientName}</strong> is asking to connect.</p>
     <p>Signing in sends you to <code class="dest">${destination}</code>.</p>

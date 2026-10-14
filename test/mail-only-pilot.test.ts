@@ -13,7 +13,7 @@ import { MAIL_ONLY_NOTICE, renderForm } from "../src/auth/login-page";
 import { ownerPrincipal } from "./fixtures/bound-secrets";
 
 afterEach(() => { vi.restoreAllMocks(); });
-const MAIL_TOOLS = ["mail_get_message", "mail_list_folders", "mail_list_messages", "mail_find", "mail_list_unread", "mail_compose_new", "mail_compose_reply"];
+const MAIL_TOOLS = ["mail_get_message", "mail_list_folders", "mail_list_messages", "mail_find", "mail_list_unread", "mail_compose_new", "mail_compose_reply", "mail_mark_read", "mail_move", "mail_archive", "mail_trash", "mail_commit"];
 
 function registered() {
   const tools = new Map<string, { inputSchema?: z.ZodType }>();
@@ -23,7 +23,7 @@ function registered() {
 }
 
 describe("mail-only deployment", () => {
-  it("exposes exactly nine tools through the actual MCP protocol", async () => {
+  it("exposes exactly fourteen authorized tools through the actual MCP protocol", async () => {
     const extra = vi.fn();
     const server = await createServerFactory(ownerPrincipal(), [extra], async () => null, true)({ era: "modern" });
     const [client, transport] = InMemoryTransport.createLinkedPair();
@@ -34,7 +34,7 @@ describe("mail-only deployment", () => {
     const requests: JSONRPCMessage[] = [
       { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2026-07-28", capabilities: {}, clientInfo: { name: "mail-only-test", version: "1" } } },
       { jsonrpc: "2.0", id: 2, method: "tools/list", params: {} },
-      { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "mail_mark_read", arguments: {} } },
+      { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "mail_flag", arguments: {} } },
     ];
     for (const request of requests) await client.send(request);
     await new Promise(resolve => setTimeout(resolve, 0));
@@ -57,6 +57,22 @@ describe("mail-only deployment", () => {
       expect(schema.safeParse({ ...base, folderId: "another-folder" }).success).toBe(false);
       expect(schema.safeParse({ ...base, text: "a".repeat(16001) }).success).toBe(false);
     }
+  });
+
+  it("admits read/unread and previewed moves but refuses other commit operations", () => {
+    const tools = registered();
+    const mark = tools.get("mail_mark_read")!.inputSchema!;
+    for (const read of [true, false]) expect(mark.safeParse({ id: "opaque", read }).success).toBe(true);
+    expect(mark.safeParse({ id: "opaque", read: "true" }).success).toBe(false);
+    for (const name of ["mail_move", "mail_archive", "mail_trash"]) {
+      const schema = tools.get(name)!.inputSchema!;
+      expect(schema.safeParse({ ids: [], destination: "folder" }).success).toBe(false);
+      expect(schema.safeParse({ ids: ["opaque"], destination: "folder" }).success).toBe(true);
+    }
+    const commit = tools.get("mail_commit")!.inputSchema!;
+    expect(commit.safeParse({ confirmToken: "sealed", change: { op: "move", ids: ["opaque"], destination: "folder" } }).success).toBe(true);
+    expect(commit.safeParse({ confirmToken: "sealed", change: { op: "draft-delete", id: "opaque", subject: null } }).success).toBe(false);
+    expect(commit.safeParse({ change: { op: "move", ids: ["opaque"], destination: "folder" } }).success).toBe(false);
   });
 
   it("keeps every mail handler behind authentication before acquiring a connection", async () => {

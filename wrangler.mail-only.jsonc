@@ -30,6 +30,12 @@
     {
       "binding": "ALLOW_LIST_KV",
       "id": "fda41da12f3d46bfaac21f4ede45b739"
+    },
+    // Reuse existing storage: expiring confirm:v4:<user>:<nonce> records
+    // cannot overlap the single allow-list:v1 key. No new paid resource.
+    {
+      "binding": "CONFIRM_KV",
+      "id": "fda41da12f3d46bfaac21f4ede45b739"
     }
   ],
   "ratelimits": [
